@@ -1,0 +1,36 @@
+name: Commit new version
+
+on:
+  workflow_dispatch:
+
+jobs:
+  new-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - name: Find line
+        id: line
+        run: |
+          echo "LINE_TO_REPLACE=$(grep "^randovania_version=[[:digit:]]\.[[:digit:]]\.[[:digit:]]$" ci.sh)" >> $GITHUB_OUTPUT
+
+
+      - name: Find old version
+        id: old_version
+        run: |
+          echo "OLD_VERSION=$(echo ${{ steps.line.outputs.LINE_TO_REPLACE }} | sed s/randovania_version=//g)" >> $GITHUB_OUTPUT
+
+      - name: Find new version
+        id: new_version
+        run: |
+          echo "NEW_VERSION=$(curl 'https://api.github.com/repos/randovania/randovania/tags' | jq -r '.[0].name')" >> $GITHUB_OUTPUT
+
+      - name: Replace version
+        if: ${{ steps.old_version.outputs.OLD_VERSION }} != ${{ steps.new_version.outputs.NEW_VERSION }}
+        run: |
+          sed -i s/${{ steps.line.outputs.LINE_TO_REPLACE }}/randovania_version=${{ steps.new_version.outputs.NEW_VERSION }}/g ci.sh
+          
+        
+        
+          
